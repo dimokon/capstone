@@ -1,0 +1,4 @@
+<%- include('partials/header') %>
+<section class="page-header"><div><span class="eyebrow">Life at Kaloboyei</span><h1>Learning looks<br>like many things.</h1></div><p>From the first question in class to the last game before home time, these are the moments that make our school.</p></section>
+<section class="section"><div class="gallery-grid"><% gallery.forEach(item => { %><figure class="gallery-card"><img src="<%= item.image %>" alt="<%= item.title %>"><figcaption><small><%= item.category %></small><%= item.title %></figcaption></figure><% }) %></div></section>
+<%- include('partials/footer') %>

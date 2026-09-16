@@ -1,0 +1,4 @@
+<%- include('partials/header') %>
+<section class="page-header"><div><span class="eyebrow">The school calendar</span><h1>Good things are<br>always happening.</h1></div><p>Keep up with assessment weeks, community days, clubs and the moments that bring our school together.</p></section>
+<section class="section"><div class="event-list"><% events.forEach(event => { %><article class="event-item"><div class="event-date"><%= event.date %><small><%= event.month %></small></div><div><h3><%= event.title %></h3><p><%= event.detail %></p></div><span class="tag"><%= event.tag %></span><span aria-hidden="true">↗</span></article><% }) %></div></section>
+<%- include('partials/footer') %>

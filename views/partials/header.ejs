@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Kaloboyei School gives every learner room to grow."
+    />
+    <title><%= title %> · Kaloboyei School</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <div class="announcement">
+      <span>2026 academic year</span
+      ><span>Building brighter days in Kalobeyei Settlement</span
+      ><a href="/donate"
+        >Support our learners <span aria-hidden="true">↗</span></a
+      >
+    </div>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Kaloboyei School home"
+        ><span class="brand-mark">K</span
+        ><span>kaloboyei<br /><small>school</small></span></a
+      >
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+      <nav class="main-nav">
+        <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Home</a>
+        <a class="<%= currentPath === '/about' ? 'active' : '' %>" href="/about"
+          >Our school</a
+        >
+        <a
+          class="<%= currentPath === '/events' ? 'active' : '' %>"
+          href="/events"
+          >Events</a
+        >
+        <a
+          class="<%= currentPath === '/gallery' ? 'active' : '' %>"
+          href="/gallery"
+          >Gallery</a
+        >
+        <a
+          class="<%= currentPath === '/donate' ? 'active' : '' %>"
+          href="/donate"
+          >Give support</a
+        >
+      </nav>
+      <div class="header-actions">
+        <a class="button button-small" href="/student/login">Student portal</a>
+      </div>
+    </header>
+    <main></main>
+  </body>
+</html>

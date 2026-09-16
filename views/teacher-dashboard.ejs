@@ -1,0 +1,49 @@
+<%- include('partials/header') %>
+<section class="teacher-dashboard">
+  <div class="dashboard-top">
+    <div>
+      <span class="eyebrow">Staff workspace</span>
+      <h1>Good morning, <%= teacher.name.split(" ")[0] %>.</h1>
+      <p class="dashboard-sub">
+        Manage results and keep your classes moving forward.
+      </p>
+    </div>
+    <a class="button button-outline" href="/">Back to website</a>
+  </div>
+  <% if (uploaded) { %><div class="success-alert">The result PDF was uploaded successfully.</div><% } %>
+  <div class="upload-box">
+    <h2>Upload exam results</h2>
+    <p class="body-copy">
+      Select a learner and upload their PDF result for secure delivery to their dashboard.
+    </p>
+    <form method="post" action="/teacher/results" enctype="multipart/form-data">
+      <div class="form-field">
+        <label for="studentId">Student</label>
+        <select id="studentId" name="studentId" required>
+          <option value="">Choose a student</option>
+          <% availableStudents.forEach((student) => { %>
+            <option value="<%= student.id %>"><%= student.full_name %> · <%= student.assessment_number %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="subject">Subject</label
+        ><input id="subject" name="subject" placeholder="Term examination" required />
+      </div>
+      <div class="form-field">
+        <label for="term">Term</label>
+        <input id="term" name="term" placeholder="Term 2" required />
+      </div>
+      <div class="form-field">
+        <label for="year">Year</label>
+        <input id="year" name="year" type="number" min="2020" max="2100" value="2026" required />
+      </div>
+      <div class="form-field">
+        <label for="resultsFile">Result PDF</label>
+        <input id="resultsFile" name="resultsFile" type="file" accept="application/pdf,.pdf" required />
+      </div>
+      <button class="button" type="submit">Upload results ↗</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>
