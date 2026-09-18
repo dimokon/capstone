@@ -78,43 +78,4 @@ const events = [
   },
 ];
 
-const gallery = [
-  {
-    title: "Learning under every sky",
-    category: "Classrooms",
-    image:
-      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=85",
-  },
-  {
-    title: "A place to belong",
-    category: "Community",
-    image:
-      "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1000&q=85",
-  },
-  {
-    title: "Curious hands, bright futures",
-    category: "Clubs",
-    image:
-      "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=85",
-  },
-  {
-    title: "Every voice matters",
-    category: "Student life",
-    image:
-      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1000&q=85",
-  },
-  {
-    title: "Growing together",
-    category: "Agriculture",
-    image:
-      "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1000&q=85",
-  },
-  {
-    title: "The joy of discovery",
-    category: "Science",
-    image:
-      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1000&q=85",
-  },
-];
-
-module.exports = { students, events, gallery };
+module.exports = { students, events };

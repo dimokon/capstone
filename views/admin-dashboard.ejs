@@ -1,3 +1,57 @@
 <%- include('partials/header') %>
-<section class="admin-dashboard"><div class="dashboard-top"><div><span class="eyebrow">Private administration</span><h1>Good morning, <%= admin.name.split(" ")[0] %>.</h1><p class="dashboard-sub">A clear view of the people and records that keep Kalobeyei moving.</p></div><form method="post" action="/admin/logout"><button class="button button-outline" type="submit">Sign out</button></form></div><% if (!stats) { %><div class="alert">School statistics are temporarily unavailable. Please refresh in a moment.</div><% } else { %><div class="admin-stat-grid"><div class="admin-stat"><span>Learners</span><strong><%= stats.students %></strong><small>student accounts</small></div><div class="admin-stat"><span>Teachers</span><strong><%= stats.teachers %></strong><small>teaching accounts</small></div><div class="admin-stat"><span>Results</span><strong><%= stats.results %></strong><small>uploaded records</small></div><div class="admin-stat"><span>Events</span><strong><%= stats.events %></strong><small>school events</small></div></div><% } %><div class="admin-panels"><div class="panel"><span class="eyebrow">Administration</span><h2>School operations</h2><p>Manage accounts, review learning records and keep school information current from this workspace.</p><div class="admin-actions"><a class="button" href="/teacher/register">Register teacher ↗</a><a class="button button-outline" href="/">View public site</a></div></div><div class="panel"><span class="eyebrow">Account</span><h2><%= admin.name %></h2><p><%= admin.email %></p><small>Administrator access</small></div></div></section>
+<section class="admin-dashboard">
+  <div class="dashboard-top">
+    <div>
+      <span class="eyebrow">Private administration</span>
+      <h1>Good morning, <%= admin.name.split(" ")[0] %>.</h1>
+      <p class="dashboard-sub">A clear view of the people and records that keep Kaloboyei moving.</p>
+    </div>
+    <form method="post" action="/admin/logout">
+      <button class="button button-outline" type="submit">Sign out</button>
+    </form>
+  </div>
+
+  <% if (!stats) { %>
+    <div class="alert">School statistics are temporarily unavailable. Please refresh in a moment.</div>
+  <% } else { %>
+    <div class="admin-stat-grid">
+      <div class="admin-stat"><span>Learners</span><strong><%= stats.students %></strong><small>student accounts</small></div>
+      <div class="admin-stat"><span>Teachers</span><strong><%= stats.teachers %></strong><small>teaching accounts</small></div>
+      <div class="admin-stat"><span>Results</span><strong><%= stats.results %></strong><small>uploaded records</small></div>
+      <div class="admin-stat"><span>Events</span><strong><%= stats.events %></strong><small>school events</small></div>
+      <div class="admin-stat"><span>Gallery</span><strong><%= stats.gallery %></strong><small>published images</small></div>
+    </div>
+  <% } %>
+
+  <div class="admin-panels">
+    <div class="panel">
+      <span class="eyebrow">Administration</span>
+      <h2>School operations</h2>
+      <p>Manage accounts, review learning records and keep school information current from this workspace.</p>
+      <div class="admin-actions">
+        <a class="button" href="/teacher/register">Register teacher ↗</a>
+        <a class="button button-outline" href="/">View public site</a>
+      </div>
+    </div>
+    <div class="panel">
+      <span class="eyebrow">Gallery upload</span>
+      <h2>Add a school moment</h2>
+      <form method="post" action="/admin/gallery" enctype="multipart/form-data">
+        <div class="form-field">
+          <label for="galleryTitle">Title</label>
+          <input id="galleryTitle" name="title" placeholder="Learning under every sky" required>
+        </div>
+        <div class="form-field">
+          <label for="galleryCategory">Category</label>
+          <input id="galleryCategory" name="category" placeholder="Classrooms" required>
+        </div>
+        <div class="form-field">
+          <label for="galleryImage">Image</label>
+          <input id="galleryImage" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
+        </div>
+        <button class="button" type="submit">Publish image ↗</button>
+      </form>
+    </div>
+  </div>
+</section>
 <%- include('partials/footer') %>

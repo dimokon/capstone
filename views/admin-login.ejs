@@ -1,4 +1,31 @@
 <%- include('partials/header') %>
-<div class="password-field"><input id="password" type="password" name="password" autocomplete="current-password" required><button class="password-toggle" type="button" data-password-toggle="password">Show</button></div>
-<section class="login-page"><div class="login-art"><span class="eyebrow">School administration</span><h1>Keep the<br>whole school moving.</h1><p>Manage people, learning records and the wider work that helps Kaloboyei thrive.</p></div><div class="login-form-wrap"><div class="form-box"><h2>Admin sign in</h2><p>This private workspace is for authorised school administrators.</p><% if (error) { %><div class="alert"><%= error %></div><% } %><form method="post" action="/admin/login"><div class="form-field"><label for="email">Admin email</label><input id="email" type="email" name="email" placeholder="admin@kaloboyei.org" autocomplete="email" required></div><div class="form-field"><label for="password">Password</label><input id="password" type="password" name="password" autocomplete="current-password" required></div><button class="button" type="submit">Open admin dashboard ↗</button></form><p class="form-switch"><a href="/">Return to the school website</a></p></div></div></section>
+<section class="login-page">
+  <div class="login-art">
+    <span class="eyebrow">School administration</span>
+    <h1>Keep the<br>whole school moving.</h1>
+    <p>Manage people, learning records and the wider work that helps Kaloboyei thrive.</p>
+  </div>
+  <div class="login-form-wrap">
+    <div class="form-box">
+      <h2>Admin sign in</h2>
+      <p>This private workspace is for authorised school administrators.</p>
+      <% if (error) { %><div class="alert"><%= error %></div><% } %>
+      <form method="post" action="/admin/login">
+        <div class="form-field">
+          <label for="email">Admin email</label>
+          <input id="email" type="email" name="email" placeholder="admin@kaloboyei.org" autocomplete="email" required>
+        </div>
+        <div class="form-field">
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input id="password" type="password" name="password" autocomplete="current-password" required>
+            <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password">Show</button>
+          </div>
+        </div>
+        <button class="button" type="submit">Open admin dashboard ↗</button>
+      </form>
+      <p class="form-switch"><a href="/">Return to the school website</a></p>
+    </div>
+  </div>
+</section>
 <%- include('partials/footer') %>

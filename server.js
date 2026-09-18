@@ -8,7 +8,7 @@ const session = require("express-session");
 const methodOverride = require("method-override");
 const multer = require("multer");
 const path = require("path");
-const { students, events, gallery } = require("./data/mockData");
+const { students, events } = require("./data/mockData");
 
 const dbConn = mysql.createConnection({
   host: "localhost",
@@ -29,7 +29,14 @@ const db = dbConn.promise();
 const app = express();
 const port = process.env.PORT || 3000;
 const resultUploadDirectory = path.join(__dirname, "private", "results");
+const galleryUploadDirectory = path.join(
+  __dirname,
+  "public",
+  "uploads",
+  "gallery",
+);
 fs.mkdirSync(resultUploadDirectory, { recursive: true });
+fs.mkdirSync(galleryUploadDirectory, { recursive: true });
 const resultUpload = multer({
   storage: multer.diskStorage({
     destination: resultUploadDirectory,
@@ -40,6 +47,27 @@ const resultUpload = multer({
   fileFilter: (req, file, callback) => {
     if (file.mimetype !== "application/pdf")
       return callback(new Error("Only PDF files are allowed."));
+    callback(null, true);
+  },
+});
+const galleryUpload = multer({
+  storage: multer.diskStorage({
+    destination: galleryUploadDirectory,
+    filename: (req, file, callback) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      callback(null, `${crypto.randomUUID()}${extension}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    if (
+      !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(
+        file.mimetype,
+      )
+    )
+      return callback(
+        new Error("Only JPG, PNG, WEBP or GIF images are allowed."),
+      );
     callback(null, true);
   },
 });
@@ -76,22 +104,40 @@ const requireTeacher = (req, res, next) => {
   next();
 };
 
-app.get("/", (req, res) =>
+app.get("/", async (req, res) => {
+  let gallery = [];
+  try {
+    const [galleryRows] = await db.query(
+      "SELECT title, image_url AS image, category FROM gallery ORDER BY created_at DESC LIMIT 6",
+    );
+    gallery = galleryRows;
+  } catch (error) {
+    console.error("Loading gallery preview failed:", error.message);
+  }
   res.render("home", {
     title: "A school where every future has room to grow",
     events,
     gallery,
-  }),
-);
+  });
+});
 app.get("/about", (req, res) =>
   res.render("about", { title: "About Kaloboyei" }),
 );
 app.get("/events", (req, res) =>
   res.render("events", { title: "What is happening at Kaloboyei", events }),
 );
-app.get("/gallery", (req, res) =>
-  res.render("gallery", { title: "Life at Kaloboyei", gallery }),
-);
+app.get("/gallery", async (req, res) => {
+  let gallery = [];
+  try {
+    const [galleryRows] = await db.query(
+      "SELECT title, image_url AS image, category FROM gallery ORDER BY created_at DESC",
+    );
+    gallery = galleryRows;
+  } catch (error) {
+    console.error("Loading gallery failed:", error.message);
+  }
+  res.render("gallery", { title: "Life at Kaloboyei", gallery });
+});
 app.get("/donate", (req, res) =>
   res.render("donate", { title: "Help a learner keep learning" }),
 );
@@ -470,6 +516,9 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
     const [[eventCount]] = await db.query(
       "SELECT COUNT(*) AS total FROM events",
     );
+    const [[galleryCount]] = await db.query(
+      "SELECT COUNT(*) AS total FROM gallery",
+    );
 
     return res.render("admin-dashboard", {
       title: "Admin dashboard",
@@ -479,6 +528,7 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
         teachers: teacherCount.total,
         results: resultCount.total,
         events: eventCount.total,
+        gallery: galleryCount.total,
       },
     });
   } catch (error) {
@@ -490,6 +540,45 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
     });
   }
 });
+app.post(
+  "/admin/gallery",
+  requireAdmin,
+  (req, res, next) => {
+    galleryUpload.single("image")(req, res, (error) => {
+      if (error) return res.status(400).send(error.message);
+      next();
+    });
+  },
+  async (req, res) => {
+    const title = (req.body.title || "").trim();
+    const category = (req.body.category || "").trim();
+    if (!req.file || !title || !category) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(400).send("Title, category and an image are required.");
+    }
+    if (!req.session.admin.id) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(403).send("A database admin account is required.");
+    }
+
+    try {
+      await db.query(
+        "INSERT INTO gallery (title, category, image_url, uploaded_by) VALUES (?, ?, ?, ?)",
+        [
+          title,
+          category,
+          `/uploads/gallery/${req.file.filename}`,
+          req.session.admin.id,
+        ],
+      );
+      return res.redirect("/admin/dashboard?galleryUploaded=1");
+    } catch (error) {
+      fs.unlink(req.file.path, () => {});
+      console.error("Gallery upload failed:", error.message);
+      return res.status(500).send("The gallery image could not be saved.");
+    }
+  },
+);
 app.post("/admin/logout", (req, res) => {
   req.session.admin = null;
   res.redirect("/admin/login");

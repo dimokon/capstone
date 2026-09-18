@@ -60,6 +60,7 @@ CREATE TABLE events (
 CREATE TABLE gallery (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(150),
+  category VARCHAR(100),
   image_url VARCHAR(255) NOT NULL,
   uploaded_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -74,3 +75,8 @@ VALUES (
   '$2a$12$mWAPN5GHTAAxojRHpq7ALekjXBHKpo5klAzA5KGC512.h.sis1n4W',
   'admin'
 );
+
+  UPDATE users
+  SET password = '$2a$12$Mbd7NE2M2dbKwejhRr0uQ.Vv3Upb5T6BcJPi3mvp3PnvsefhR8.au'
+  WHERE email = 'admin@kaloboyei.org'
+    AND role = 'admin';
