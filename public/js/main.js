@@ -27,3 +27,52 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     );
   });
 });
+
+const galleryModal = document.getElementById("galleryModal");
+const galleryModalImage = document.getElementById("galleryModalImage");
+const galleryModalTitle = document.getElementById("galleryModalTitle");
+const galleryModalCategory = document.getElementById("galleryModalCategory");
+const galleryCloseButton = document.querySelector(".gallery-modal-close");
+const galleryBackdrop = document.querySelector("[data-close-gallery]");
+
+function openGalleryModal(image, title, category) {
+  if (
+    !galleryModal ||
+    !galleryModalImage ||
+    !galleryModalTitle ||
+    !galleryModalCategory
+  )
+    return;
+  galleryModalImage.src = image;
+  galleryModalImage.alt = title;
+  galleryModalTitle.textContent = title;
+  galleryModalCategory.textContent = category;
+  galleryModal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeGalleryModal() {
+  if (!galleryModal) return;
+  galleryModal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+document.querySelectorAll("[data-gallery-image]").forEach((card) => {
+  card.addEventListener("click", () => {
+    openGalleryModal(
+      card.dataset.galleryImage,
+      card.dataset.galleryTitle,
+      card.dataset.galleryCategory,
+    );
+  });
+});
+
+if (galleryCloseButton)
+  galleryCloseButton.addEventListener("click", closeGalleryModal);
+if (galleryBackdrop)
+  galleryBackdrop.addEventListener("click", closeGalleryModal);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && galleryModal && !galleryModal.hidden) {
+    closeGalleryModal();
+  }
+});

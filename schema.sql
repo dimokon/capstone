@@ -61,10 +61,11 @@ CREATE TABLE gallery (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(150),
   category VARCHAR(100),
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
   image_url VARCHAR(255) NOT NULL,
   uploaded_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (uploaded_by) REFERENCES users(id)
 );
 
 

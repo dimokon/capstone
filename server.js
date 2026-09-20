@@ -26,6 +26,27 @@ dbConn.connect((error) => {
 });
 const db = dbConn.promise();
 
+async function ensureGallerySchema() {
+  try {
+    const [columns] = await db.query("SHOW COLUMNS FROM gallery");
+    const fieldNames = columns.map((column) => column.Field);
+
+    if (!fieldNames.includes("category")) {
+      await db.query("ALTER TABLE gallery ADD COLUMN category VARCHAR(100)");
+    }
+
+    if (!fieldNames.includes("is_featured")) {
+      await db.query(
+        "ALTER TABLE gallery ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT FALSE",
+      );
+    }
+
+    console.log("Gallery schema verified.");
+  } catch (error) {
+    console.error("Gallery schema check failed:", error.message);
+  }
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
 const resultUploadDirectory = path.join(__dirname, "private", "results");
@@ -106,18 +127,32 @@ const requireTeacher = (req, res, next) => {
 
 app.get("/", async (req, res) => {
   let gallery = [];
+  let featuredImage = null;
+
   try {
-    const [galleryRows] = await db.query(
-      "SELECT title, image_url AS image, category FROM gallery ORDER BY created_at DESC LIMIT 6",
+    const [featuredRows] = await db.query(
+      "SELECT title, image_url AS image, category FROM gallery WHERE is_featured = TRUE LIMIT 1",
     );
-    gallery = galleryRows;
+    const [galleryRows] = await db.query(
+      "SELECT title, image_url AS image, category FROM gallery WHERE is_featured = FALSE OR is_featured IS NULL ORDER BY created_at DESC LIMIT 6",
+    );
+
+    featuredImage = featuredRows[0] || galleryRows[0] || null;
+    gallery =
+      featuredImage &&
+      galleryRows[0] &&
+      galleryRows[0].image === featuredImage.image
+        ? galleryRows.slice(1)
+        : galleryRows;
   } catch (error) {
     console.error("Loading gallery preview failed:", error.message);
   }
+
   res.render("home", {
     title: "A school where every future has room to grow",
     events,
     gallery,
+    featuredImage,
   });
 });
 app.get("/about", (req, res) =>
@@ -552,6 +587,11 @@ app.post(
   async (req, res) => {
     const title = (req.body.title || "").trim();
     const category = (req.body.category || "").trim();
+    const isFeatured =
+      req.body.isFeatured === "true" ||
+      req.body.isFeatured === "on" ||
+      req.body.isFeatured === "1";
+
     if (!req.file || !title || !category) {
       if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(400).send("Title, category and an image are required.");
@@ -562,17 +602,29 @@ app.post(
     }
 
     try {
+      await db.query("START TRANSACTION");
+
+      if (isFeatured) {
+        await db.query(
+          "UPDATE gallery SET is_featured = FALSE WHERE is_featured = TRUE",
+        );
+      }
+
       await db.query(
-        "INSERT INTO gallery (title, category, image_url, uploaded_by) VALUES (?, ?, ?, ?)",
+        "INSERT INTO gallery (title, category, is_featured, image_url, uploaded_by) VALUES (?, ?, ?, ?, ?)",
         [
           title,
           category,
+          isFeatured ? 1 : 0,
           `/uploads/gallery/${req.file.filename}`,
           req.session.admin.id,
         ],
       );
+
+      await db.query("COMMIT");
       return res.redirect("/admin/dashboard?galleryUploaded=1");
     } catch (error) {
+      await db.query("ROLLBACK").catch(() => {});
       fs.unlink(req.file.path, () => {});
       console.error("Gallery upload failed:", error.message);
       return res.status(500).send("The gallery image could not be saved.");
@@ -587,6 +639,9 @@ app.post("/admin/logout", (req, res) => {
 app.use((req, res) =>
   res.status(404).render("404", { title: "Page not found" }),
 );
-app.listen(port, () =>
-  console.log(`Kaloboyei School portal running at http://localhost:${port}`),
-);
+
+ensureGallerySchema().then(() => {
+  app.listen(port, () =>
+    console.log(`Kaloboyei School portal running at http://localhost:${port}`),
+  );
+});
