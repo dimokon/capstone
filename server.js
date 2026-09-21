@@ -47,6 +47,34 @@ async function ensureGallerySchema() {
   }
 }
 
+async function ensureStudentLibrarySchema() {
+  try {
+    const [studentColumns] = await db.query("SHOW COLUMNS FROM students");
+    const studentFields = studentColumns.map((column) => column.Field);
+    if (!studentFields.includes("stream")) {
+      await db.query("ALTER TABLE students ADD COLUMN stream VARCHAR(50)");
+    }
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS library_books (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        borrowed_at DATE NOT NULL,
+        due_date DATE,
+        returned_at DATE,
+        recorded_by INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (recorded_by) REFERENCES users(id)
+      )
+    `);
+    console.log("Student and library schema verified.");
+  } catch (error) {
+    console.error("Student/library schema check failed:", error.message);
+  }
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
 const resultUploadDirectory = path.join(__dirname, "private", "results");
@@ -124,10 +152,20 @@ const requireTeacher = (req, res, next) => {
   if (!req.session.teacher) return res.redirect("/teacher/login");
   next();
 };
+const classStreams = {
+  "Grade 3": ["East", "West", "South"],
+  "Grade 4": ["East", "West", "South"],
+  "Grade 5": ["East", "West", "South"],
+  "Grade 6": ["East", "West"],
+  "Grade 7": ["A", "B"],
+  "Grade 8": ["A", "B"],
+  "Grade 9": ["A", "B", "C"],
+};
 
 app.get("/", async (req, res) => {
   let gallery = [];
   let featuredImage = null;
+  let publicEvents = events;
 
   try {
     const [featuredRows] = await db.query(
@@ -144,13 +182,29 @@ app.get("/", async (req, res) => {
       galleryRows[0].image === featuredImage.image
         ? galleryRows.slice(1)
         : galleryRows;
+
+    const [eventRows] = await db.query(
+      "SELECT title, description, event_date FROM events ORDER BY event_date ASC",
+    );
+    if (eventRows.length) {
+      publicEvents = eventRows.map((event) => {
+        const date = new Date(event.event_date);
+        return {
+          date: date.getDate(),
+          month: date.toLocaleString("en", { month: "short" }),
+          title: event.title,
+          detail: event.description || "School community event",
+          tag: "School event",
+        };
+      });
+    }
   } catch (error) {
-    console.error("Loading gallery preview failed:", error.message);
+    console.error("Loading homepage content failed:", error.message);
   }
 
   res.render("home", {
     title: "A school where every future has room to grow",
-    events,
+    events: publicEvents,
     gallery,
     featuredImage,
   });
@@ -158,9 +212,32 @@ app.get("/", async (req, res) => {
 app.get("/about", (req, res) =>
   res.render("about", { title: "About Kaloboyei" }),
 );
-app.get("/events", (req, res) =>
-  res.render("events", { title: "What is happening at Kaloboyei", events }),
-);
+app.get("/events", async (req, res) => {
+  let publicEvents = events;
+  try {
+    const [eventRows] = await db.query(
+      "SELECT title, description, event_date FROM events ORDER BY event_date ASC",
+    );
+    if (eventRows.length) {
+      publicEvents = eventRows.map((event) => {
+        const date = new Date(event.event_date);
+        return {
+          date: date.getDate(),
+          month: date.toLocaleString("en", { month: "short" }),
+          title: event.title,
+          detail: event.description || "School community event",
+          tag: "School event",
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Loading public events failed:", error.message);
+  }
+  res.render("events", {
+    title: "What is happening at Kaloboyei",
+    events: publicEvents,
+  });
+});
 app.get("/gallery", async (req, res) => {
   let gallery = [];
   try {
@@ -256,6 +333,7 @@ app.get("/student/register", (req, res) =>
     error: null,
     success: null,
     formData: {},
+    classStreams,
   }),
 );
 app.post("/student/register", async (req, res) => {
@@ -263,9 +341,11 @@ app.post("/student/register", async (req, res) => {
   const assessmentNumber = (req.body.assessmentNumber || "")
     .trim()
     .toUpperCase();
+  const classGrade = (req.body.classGrade || "").trim();
+  const stream = (req.body.stream || "").trim();
   const password = req.body.password || "";
   const confirmPassword = req.body.confirmPassword || "";
-  const formData = { name, assessmentNumber };
+  const formData = { name, assessmentNumber, classGrade, stream };
 
   const renderError = (error, status = 400) =>
     res.status(status).render("student-register", {
@@ -273,10 +353,24 @@ app.post("/student/register", async (req, res) => {
       error,
       success: null,
       formData,
+      classStreams,
     });
 
-  if (!name || !assessmentNumber || !password || !confirmPassword)
+  if (
+    !name ||
+    !assessmentNumber ||
+    !classGrade ||
+    !stream ||
+    !password ||
+    !confirmPassword
+  )
     return renderError("Please complete every field.");
+  if (!/^[AB]\d{8,9}$/.test(assessmentNumber))
+    return renderError(
+      "Assessment number must start with A or B and contain 8 or 9 digits after it.",
+    );
+  if (!classStreams[classGrade] || !classStreams[classGrade].includes(stream))
+    return renderError("Choose a valid stream for the selected grade.");
   if (password.length < 6)
     return renderError("Your password must be at least 6 characters.");
   if (password !== confirmPassword)
@@ -292,14 +386,15 @@ app.post("/student/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
     await db.query(
-      "INSERT INTO students (assessment_number, password, full_name) VALUES (?, ?, ?)",
-      [assessmentNumber, passwordHash, name],
+      "INSERT INTO students (assessment_number, password, full_name, class_grade, stream) VALUES (?, ?, ?, ?, ?)",
+      [assessmentNumber, passwordHash, name, classGrade, stream],
     );
     return res.render("student-register", {
       title: "Student registration",
       error: null,
       success: "Your account is ready. You can now sign in.",
       formData: {},
+      classStreams,
     });
   } catch (error) {
     console.error("Student registration failed:", error.message);
@@ -371,6 +466,7 @@ app.post("/teacher/register", requireAdmin, async (req, res) => {
       error: "Please complete every field.",
       success: null,
       formData,
+      classStreams,
     });
   if (password.length < 6)
     return res.status(400).render("teacher-register", {
@@ -422,19 +518,32 @@ app.post("/teacher/register", requireAdmin, async (req, res) => {
 });
 app.get("/teacher/dashboard", requireTeacher, async (req, res) => {
   let availableStudents = [];
+  let borrowedBooks = [];
   try {
     const [studentRows] = await db.query(
-      "SELECT id, assessment_number, full_name, class_grade FROM students ORDER BY full_name",
+      "SELECT id, assessment_number, full_name, class_grade, stream FROM students ORDER BY class_grade, stream, full_name",
     );
     availableStudents = studentRows;
+    const [bookRows] = await db.query(
+      `SELECT library_books.id, library_books.title, library_books.borrowed_at,
+        library_books.due_date, library_books.returned_at,
+        students.full_name, students.assessment_number, students.class_grade, students.stream
+       FROM library_books
+       JOIN students ON students.id = library_books.student_id
+       ORDER BY library_books.returned_at IS NULL DESC, library_books.borrowed_at DESC`,
+    );
+    borrowedBooks = bookRows;
   } catch (error) {
-    console.error("Loading students for results upload failed:", error.message);
+    console.error("Loading teacher dashboard data failed:", error.message);
   }
   res.render("teacher-dashboard", {
     title: "Teacher workspace",
     teacher: req.session.teacher,
     availableStudents,
+    borrowedBooks,
+    classStreams,
     uploaded: req.query.uploaded === "1",
+    bookAdded: req.query.bookAdded === "1",
   });
 });
 app.post(
@@ -482,6 +591,64 @@ app.post(
       fs.unlink(req.file.path, () => {});
       console.error("Result upload failed:", error.message);
       return res.status(500).send("The result could not be saved.");
+    }
+  },
+);
+
+app.post("/teacher/library", requireTeacher, async (req, res) => {
+  const studentId = Number(req.body.studentId);
+  const title = (req.body.title || "").trim();
+  const borrowedAt = (req.body.borrowedAt || "").trim();
+  const dueDate = (req.body.dueDate || "").trim();
+
+  if (!req.session.teacher.id)
+    return res.status(403).send("A registered teacher account is required.");
+  if (!studentId || !title || !borrowedAt)
+    return res
+      .status(400)
+      .send("Student, book title and borrowed date are required.");
+
+  try {
+    await db.query(
+      "INSERT INTO library_books (student_id, title, borrowed_at, due_date, recorded_by) VALUES (?, ?, ?, ?, ?)",
+      [studentId, title, borrowedAt, dueDate || null, req.session.teacher.id],
+    );
+    return res.redirect("/teacher/dashboard?bookAdded=1#library");
+  } catch (error) {
+    console.error("Library book creation failed:", error.message);
+    return res.status(500).send("The borrowed book could not be saved.");
+  }
+});
+
+app.post(
+  "/teacher/library/:bookId/return",
+  requireTeacher,
+  async (req, res) => {
+    try {
+      await db.query(
+        "UPDATE library_books SET returned_at = CURRENT_DATE WHERE id = ? AND returned_at IS NULL",
+        [Number(req.params.bookId)],
+      );
+      return res.redirect("/teacher/dashboard#library");
+    } catch (error) {
+      console.error("Library return update failed:", error.message);
+      return res.status(500).send("The book could not be marked as returned.");
+    }
+  },
+);
+
+app.post(
+  "/teacher/library/:bookId/delete",
+  requireTeacher,
+  async (req, res) => {
+    try {
+      await db.query("DELETE FROM library_books WHERE id = ?", [
+        Number(req.params.bookId),
+      ]);
+      return res.redirect("/teacher/dashboard#library");
+    } catch (error) {
+      console.error("Library record deletion failed:", error.message);
+      return res.status(500).send("The library record could not be deleted.");
     }
   },
 );
@@ -554,6 +721,15 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
     const [[galleryCount]] = await db.query(
       "SELECT COUNT(*) AS total FROM gallery",
     );
+    const [teachers] = await db.query(
+      "SELECT id, name, email, created_at FROM users WHERE role = 'teacher' ORDER BY created_at DESC",
+    );
+    const [students] = await db.query(
+      "SELECT id, assessment_number, full_name, class_grade, stream, created_at FROM students ORDER BY created_at DESC",
+    );
+    const [adminEvents] = await db.query(
+      "SELECT id, title, description, event_date FROM events ORDER BY event_date DESC",
+    );
 
     return res.render("admin-dashboard", {
       title: "Admin dashboard",
@@ -565,6 +741,9 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
         events: eventCount.total,
         gallery: galleryCount.total,
       },
+      teachers,
+      students,
+      adminEvents,
     });
   } catch (error) {
     console.error("Admin dashboard failed:", error.message);
@@ -572,7 +751,76 @@ app.get("/admin/dashboard", requireAdmin, async (req, res) => {
       title: "Admin dashboard",
       admin: req.session.admin,
       stats: null,
+      teachers: [],
+      students: [],
+      adminEvents: [],
     });
+  }
+});
+app.post(
+  "/admin/teachers/:teacherId/delete",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const teacherId = Number(req.params.teacherId);
+      await db.query("START TRANSACTION");
+      await db.query("DELETE FROM results WHERE uploaded_by = ?", [teacherId]);
+      await db.query("DELETE FROM users WHERE id = ? AND role = 'teacher'", [
+        teacherId,
+      ]);
+      await db.query("COMMIT");
+      return res.redirect("/admin/dashboard#teachers");
+    } catch (error) {
+      await db.query("ROLLBACK").catch(() => {});
+      console.error("Teacher deletion failed:", error.message);
+      return res.status(500).send("The teacher could not be deleted.");
+    }
+  },
+);
+app.post("/admin/events", requireAdmin, async (req, res) => {
+  const title = (req.body.title || "").trim();
+  const description = (req.body.description || "").trim();
+  const eventDate = (req.body.eventDate || "").trim();
+
+  if (!title || !eventDate) {
+    return res.status(400).send("Event title and date are required.");
+  }
+
+  try {
+    await db.query(
+      "INSERT INTO events (title, description, event_date) VALUES (?, ?, ?)",
+      [title, description || null, eventDate],
+    );
+    return res.redirect("/admin/dashboard#events");
+  } catch (error) {
+    console.error("Event creation failed:", error.message);
+    return res.status(500).send("The event could not be saved.");
+  }
+});
+app.post(
+  "/admin/students/:studentId/delete",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      await db.query("DELETE FROM students WHERE id = ?", [
+        Number(req.params.studentId),
+      ]);
+      return res.redirect("/admin/dashboard#students");
+    } catch (error) {
+      console.error("Student deletion failed:", error.message);
+      return res.status(500).send("The student could not be deleted.");
+    }
+  },
+);
+app.post("/admin/events/:eventId/delete", requireAdmin, async (req, res) => {
+  try {
+    await db.query("DELETE FROM events WHERE id = ?", [
+      Number(req.params.eventId),
+    ]);
+    return res.redirect("/admin/dashboard#events");
+  } catch (error) {
+    console.error("Event deletion failed:", error.message);
+    return res.status(500).send("The event could not be deleted.");
   }
 });
 app.post(
@@ -640,7 +888,7 @@ app.use((req, res) =>
   res.status(404).render("404", { title: "Page not found" }),
 );
 
-ensureGallerySchema().then(() => {
+Promise.all([ensureGallerySchema(), ensureStudentLibrarySchema()]).then(() => {
   app.listen(port, () =>
     console.log(`Kaloboyei School portal running at http://localhost:${port}`),
   );

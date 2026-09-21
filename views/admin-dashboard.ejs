@@ -1,63 +1,96 @@
 <%- include('partials/header') %>
 <section class="admin-dashboard">
-  <div class="dashboard-top">
-    <div>
-      <span class="eyebrow">Private administration</span>
-      <h1>Good morning, <%= admin.name.split(" ")[0] %>.</h1>
-      <p class="dashboard-sub">A clear view of the people and records that keep Kaloboyei moving.</p>
-    </div>
-    <form method="post" action="/admin/logout">
-      <button class="button button-outline" type="submit">Sign out</button>
-    </form>
-  </div>
-
-  <% if (!stats) { %>
-    <div class="alert">School statistics are temporarily unavailable. Please refresh in a moment.</div>
-  <% } else { %>
-    <div class="admin-stat-grid">
-      <div class="admin-stat"><span>Learners</span><strong><%= stats.students %></strong><small>student accounts</small></div>
-      <div class="admin-stat"><span>Teachers</span><strong><%= stats.teachers %></strong><small>teaching accounts</small></div>
-      <div class="admin-stat"><span>Results</span><strong><%= stats.results %></strong><small>uploaded records</small></div>
-      <div class="admin-stat"><span>Events</span><strong><%= stats.events %></strong><small>school events</small></div>
-      <div class="admin-stat"><span>Gallery</span><strong><%= stats.gallery %></strong><small>published images</small></div>
-    </div>
-  <% } %>
-
-  <div class="admin-panels">
-    <div class="panel">
-      <span class="eyebrow">Administration</span>
-      <h2>School operations</h2>
-      <p>Manage accounts, review learning records and keep school information current from this workspace.</p>
-      <div class="admin-actions">
-        <a class="button" href="/teacher/register">Register teacher ↗</a>
-        <a class="button button-outline" href="/">View public site</a>
-      </div>
-    </div>
-    <div class="panel">
-      <span class="eyebrow">Gallery upload</span>
-      <h2>Add a school moment</h2>
-      <form method="post" action="/admin/gallery" enctype="multipart/form-data">
-        <div class="form-field">
-          <label for="galleryTitle">Title</label>
-          <input id="galleryTitle" name="title" placeholder="Learning under every sky" required>
-        </div>
-        <div class="form-field">
-          <label for="galleryCategory">Category</label>
-          <input id="galleryCategory" name="category" placeholder="Classrooms" required>
-        </div>
-        <div class="form-field checkbox-field">
-          <label for="galleryFeatured">
-            <input id="galleryFeatured" name="isFeatured" type="checkbox" value="true">
-            Set as homepage featured image
-          </label>
-        </div>
-        <div class="form-field">
-          <label for="galleryImage">Image</label>
-          <input id="galleryImage" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
-        </div>
-        <button class="button" type="submit">Publish image ↗</button>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <span class="eyebrow">Admin workspace</span>
+      <h2>School control</h2>
+      <nav aria-label="Admin sections">
+        <a href="#overview">Overview</a>
+        <a href="#teachers">Manage teachers</a>
+        <a href="#students">Manage students</a>
+        <a href="#events">Manage events</a>
+        <a href="#gallery">Manage gallery</a>
+      </nav>
+      <a class="button button-outline sidebar-site-link" href="/">View public site</a>
+      <form method="post" action="/admin/logout">
+        <button class="button sidebar-signout" type="submit">Sign out</button>
       </form>
+    </aside>
+
+    <div class="admin-content">
+      <div class="dashboard-top" id="overview">
+        <div>
+          <span class="eyebrow">Private administration</span>
+          <h1>Good Day, Admin.</h1>
+          <p class="dashboard-sub">A clear view of the people and records that keep Kaloboyei moving.</p>
+        </div>
+      </div>
+
+      <% if (!stats) { %>
+        <div class="alert">School statistics are temporarily unavailable. Please refresh in a moment.</div>
+      <% } else { %>
+        <div class="admin-stat-grid">
+          <div class="admin-stat"><span>Learners</span><strong><%= stats.students %></strong><small>student accounts</small></div>
+          <div class="admin-stat"><span>Teachers</span><strong><%= stats.teachers %></strong><small>teaching accounts</small></div>
+          <div class="admin-stat"><span>Results</span><strong><%= stats.results %></strong><small>uploaded records</small></div>
+          <div class="admin-stat"><span>Events</span><strong><%= stats.events %></strong><small>school events</small></div>
+          <div class="admin-stat"><span>Gallery</span><strong><%= stats.gallery %></strong><small>published images</small></div>
+        </div>
+      <% } %>
+
+      <section class="admin-section" id="teachers">
+        <div class="admin-section-heading"><div><span class="eyebrow">People</span><h2>Manage teachers</h2></div><a class="button button-small" href="/teacher/register">Register teacher</a></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Action</th></tr></thead><tbody>
+          <% if (!teachers.length) { %><tr><td colspan="4">No teacher accounts yet.</td></tr><% } %>
+          <% teachers.forEach(teacher => { %><tr><td><strong><%= teacher.name %></strong></td><td><%= teacher.email %></td><td><%= new Date(teacher.created_at).toLocaleDateString() %></td><td><form method="post" action="/admin/teachers/<%= teacher.id %>/delete" onsubmit="return confirm('Delete this teacher account?')"><button class="table-action danger" type="submit">Delete</button></form></td></tr><% }) %>
+        </tbody></table></div>
+      </section>
+
+      <section class="admin-section" id="students">
+        <div class="admin-section-heading"><div><span class="eyebrow">Learners</span><h2>Manage students</h2></div></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Name</th><th>Assessment number</th><th>Class</th><th>Stream</th><th>Action</th></tr></thead><tbody>
+          <% if (!students.length) { %><tr><td colspan="5">No student accounts yet.</td></tr><% } %>
+          <% students.forEach(student => { %><tr><td><strong><%= student.full_name %></strong></td><td><%= student.assessment_number %></td><td><%= student.class_grade || 'Not set' %></td><td><%= student.stream || 'Not set' %></td><td><form method="post" action="/admin/students/<%= student.id %>/delete" onsubmit="return confirm('Delete this student account and their results?')"><button class="table-action danger" type="submit">Delete</button></form></td></tr><% }) %>
+        </tbody></table></div>
+      </section>
+
+      <section class="admin-section" id="events">
+        <div class="admin-section-heading"><div><span class="eyebrow">Calendar</span><h2>Manage events</h2></div></div>
+        <div class="panel admin-form-panel">
+          <h3>Add an event</h3>
+          <form method="post" action="/admin/events" class="event-form">
+            <div class="form-field"><label for="eventTitle">Title</label><input id="eventTitle" name="title" placeholder="Community learning day" required></div>
+            <div class="form-field"><label for="eventDate">Date</label><input id="eventDate" name="eventDate" type="date" required></div>
+            <div class="form-field"><label for="eventDescription">Description</label><textarea id="eventDescription" name="description" rows="3" placeholder="A short description for families and learners"></textarea></div>
+            <button class="button" type="submit">Publish event</button>
+          </form>
+        </div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Description</th><th>Action</th></tr></thead><tbody>
+          <% if (!adminEvents.length) { %><tr><td colspan="4">No database events yet.</td></tr><% } %>
+          <% adminEvents.forEach(event => { %><tr><td><strong><%= event.title %></strong></td><td><%= new Date(event.event_date).toLocaleDateString() %></td><td><%= event.description || 'No description' %></td><td><form method="post" action="/admin/events/<%= event.id %>/delete" onsubmit="return confirm('Delete this event?')"><button class="table-action danger" type="submit">Delete</button></form></td></tr><% }) %>
+        </tbody></table></div>
+      </section>
+
+      <section class="admin-section" id="gallery">
+        <div class="admin-panels">
+          <div class="panel">
+            <span class="eyebrow">Administration</span>
+            <h2>School operations</h2>
+            <p>Manage accounts, review learning records and keep school information current from this workspace.</p>
+          </div>
+          <div class="panel">
+            <span class="eyebrow">Gallery upload</span>
+            <h2>Add a school moment</h2>
+            <form method="post" action="/admin/gallery" enctype="multipart/form-data">
+              <div class="form-field"><label for="galleryTitle">Title</label><input id="galleryTitle" name="title" placeholder="Learning under every sky" required></div>
+              <div class="form-field"><label for="galleryCategory">Category</label><input id="galleryCategory" name="category" placeholder="Classrooms" required></div>
+              <div class="form-field checkbox-field"><label for="galleryFeatured"><input id="galleryFeatured" name="isFeatured" type="checkbox" value="true"> Set as homepage featured image</label></div>
+              <div class="form-field"><label for="galleryImage">Image</label><input id="galleryImage" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required></div>
+              <button class="button" type="submit">Publish image ↗</button>
+            </form>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
 </section>
 <%- include('partials/footer') %>

@@ -28,6 +28,70 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   });
 });
 
+const gradeSelect = document.querySelector("#classGrade");
+const streamSelect = document.querySelector("[data-stream-select]");
+if (gradeSelect && streamSelect) {
+  const streams = JSON.parse(streamSelect.dataset.streams);
+  const selectedStream = streamSelect.dataset.selected || "";
+  const updateStreams = () => {
+    streamSelect.innerHTML = '<option value="">Choose stream</option>';
+    (streams[gradeSelect.value] || []).forEach((stream) => {
+      const option = document.createElement("option");
+      option.value = stream;
+      option.textContent = stream;
+      option.selected = stream === selectedStream;
+      streamSelect.appendChild(option);
+    });
+  };
+  gradeSelect.addEventListener("change", updateStreams);
+  updateStreams();
+}
+
+document
+  .querySelectorAll("[data-student-filter='grade']")
+  .forEach((gradeFilter) => {
+    const streamFilter = gradeFilter.parentElement.parentElement.querySelector(
+      "[data-student-filter='stream']",
+    );
+    const studentSelect = gradeFilter
+      .closest("form")
+      .querySelector("select[name='studentId']");
+    if (!streamFilter || !studentSelect) return;
+    const streams = JSON.parse(streamFilter.dataset.streams || "{}");
+    const updateStreamOptions = () => {
+      streamFilter.innerHTML = '<option value="">All streams</option>';
+      (
+        streams[gradeFilter.value] ||
+        Object.values(streams)
+          .flat()
+          .filter((stream, index, all) => all.indexOf(stream) === index)
+      ).forEach((stream) => {
+        const option = document.createElement("option");
+        option.value = stream;
+        option.textContent = stream;
+        streamFilter.appendChild(option);
+      });
+    };
+    const updateStudentOptions = () => {
+      const grade = gradeFilter.value;
+      const stream = streamFilter.value;
+      Array.from(studentSelect.options).forEach((option, index) => {
+        if (index === 0) return;
+        option.hidden = Boolean(
+          (grade && option.dataset.grade !== grade) ||
+          (stream && option.dataset.stream !== stream),
+        );
+      });
+      if (studentSelect.selectedOptions[0]?.hidden) studentSelect.value = "";
+    };
+    gradeFilter.addEventListener("change", () => {
+      updateStreamOptions();
+      updateStudentOptions();
+    });
+    streamFilter.addEventListener("change", updateStudentOptions);
+    updateStreamOptions();
+  });
+
 const galleryModal = document.getElementById("galleryModal");
 const galleryModalImage = document.getElementById("galleryModalImage");
 const galleryModalTitle = document.getElementById("galleryModalTitle");

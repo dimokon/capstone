@@ -15,6 +15,7 @@ CREATE TABLE students (
   password VARCHAR(255) NOT NULL,
   full_name VARCHAR(100) NOT NULL,
   class_grade VARCHAR(50),
+  stream VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,6 +45,20 @@ CREATE TABLE assignments (
   uploaded_by INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (uploaded_by) REFERENCES users(id)
+);
+
+-- Library books borrowed by students
+CREATE TABLE library_books (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  borrowed_at DATE NOT NULL,
+  due_date DATE,
+  returned_at DATE,
+  recorded_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (recorded_by) REFERENCES users(id)
 );
 
 -- Events

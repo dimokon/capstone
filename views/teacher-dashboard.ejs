@@ -3,7 +3,7 @@
   <div class="dashboard-top">
     <div>
       <span class="eyebrow">Staff workspace</span>
-      <h1>Good morning, <%= teacher.name.split(" ")[0] %>.</h1>
+      <h1>Good Day, <%= teacher.name.split(" ")[0] %>.</h1>
       <p class="dashboard-sub">
         Manage results and keep your classes moving forward.
       </p>
@@ -11,18 +11,23 @@
     <a class="button button-outline" href="/">Back to website</a>
   </div>
   <% if (uploaded) { %><div class="success-alert">The result PDF was uploaded successfully.</div><% } %>
+  <% if (bookAdded) { %><div class="success-alert">The borrowed book was recorded successfully.</div><% } %>
   <div class="upload-box">
     <h2>Upload exam results</h2>
     <p class="body-copy">
       Select a learner and upload their PDF result for secure delivery to their dashboard.
     </p>
     <form method="post" action="/teacher/results" enctype="multipart/form-data">
+      <div class="filter-row">
+        <div class="form-field"><label for="resultsGrade">Filter grade</label><select id="resultsGrade" data-student-filter="grade"><option value="">All grades</option><% Object.keys(classStreams).forEach(grade => { %><option value="<%= grade %>"><%= grade %></option><% }) %></select></div>
+        <div class="form-field"><label for="resultsStream">Filter stream</label><select id="resultsStream" data-student-filter="stream" data-streams='<%- JSON.stringify(classStreams) %>'><option value="">All streams</option></select></div>
+      </div>
       <div class="form-field">
         <label for="studentId">Student</label>
         <select id="studentId" name="studentId" required>
           <option value="">Choose a student</option>
           <% availableStudents.forEach((student) => { %>
-            <option value="<%= student.id %>"><%= student.full_name %> · <%= student.assessment_number %></option>
+            <option value="<%= student.id %>" data-grade="<%= student.class_grade %>" data-stream="<%= student.stream %>"><%= student.full_name %> · <%= student.class_grade %> <%= student.stream %> · <%= student.assessment_number %></option>
           <% }) %>
         </select>
       </div>
@@ -45,5 +50,24 @@
       <button class="button" type="submit">Upload results ↗</button>
     </form>
   </div>
+  <section class="library-panel" id="library">
+    <div class="section-heading"><div><span class="eyebrow">Library</span><h2>Track borrowed books</h2></div></div>
+    <div class="upload-box library-form-box">
+      <form method="post" action="/teacher/library">
+        <div class="filter-row">
+          <div class="form-field"><label for="libraryGrade">Filter grade</label><select id="libraryGrade" data-student-filter="grade"><option value="">All grades</option><% Object.keys(classStreams).forEach(grade => { %><option value="<%= grade %>"><%= grade %></option><% }) %></select></div>
+          <div class="form-field"><label for="libraryStream">Filter stream</label><select id="libraryStream" data-student-filter="stream" data-streams='<%- JSON.stringify(classStreams) %>'><option value="">All streams</option></select></div>
+        </div>
+        <div class="form-field"><label for="libraryStudent">Student</label><select id="libraryStudent" name="studentId" required><option value="">Choose a student</option><% availableStudents.forEach((student) => { %><option value="<%= student.id %>" data-grade="<%= student.class_grade %>" data-stream="<%= student.stream %>"><%= student.full_name %> · <%= student.class_grade %> <%= student.stream %></option><% }) %></select></div>
+        <div class="form-field"><label for="bookTitle">Book title</label><input id="bookTitle" name="title" placeholder="The River Between" required></div>
+        <div class="date-row"><div class="form-field"><label for="borrowedAt">Borrowed date</label><input id="borrowedAt" name="borrowedAt" type="date" required></div><div class="form-field"><label for="dueDate">Due date</label><input id="dueDate" name="dueDate" type="date"></div></div>
+        <button class="button" type="submit">Record borrowed book</button>
+      </form>
+    </div>
+    <div class="admin-table-wrap library-table"><table class="admin-table"><thead><tr><th>Student</th><th>Book</th><th>Borrowed</th><th>Due</th><th>Status</th><th>Action</th></tr></thead><tbody>
+      <% if (!borrowedBooks.length) { %><tr><td colspan="6">No library records yet.</td></tr><% } %>
+      <% borrowedBooks.forEach(book => { %><tr><td><strong><%= book.full_name %></strong><small><%= book.class_grade %> <%= book.stream %></small></td><td><%= book.title %></td><td><%= book.borrowed_at ? new Date(book.borrowed_at).toLocaleDateString() : '' %></td><td><%= book.due_date ? new Date(book.due_date).toLocaleDateString() : 'Not set' %></td><td><%= book.returned_at ? 'Returned' : 'Borrowed' %></td><td><% if (!book.returned_at) { %><form method="post" action="/teacher/library/<%= book.id %>/return"><button class="table-action" type="submit">Return</button></form><% } %><form method="post" action="/teacher/library/<%= book.id %>/delete" onsubmit="return confirm('Delete this library record?')"><button class="table-action danger" type="submit">Delete</button></form></td></tr><% }) %>
+    </tbody></table></div>
+  </section>
 </section>
 <%- include('partials/footer') %>
