@@ -517,7 +517,7 @@ app.get("/teacher/dashboard", requireTeacher, async (req, res) => {
     title: "Teacher workspace",
     teacher: req.session.teacher,
     availableStudents,
-    borrowedBooks,
+    borrowedBooks,                                       
     classStreams,
     uploaded: req.query.uploaded === "1",
     bookAdded: req.query.bookAdded === "1",
