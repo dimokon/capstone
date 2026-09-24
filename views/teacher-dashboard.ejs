@@ -12,6 +12,21 @@
   </div>
   <% if (uploaded) { %><div class="success-alert">The result PDF was uploaded successfully.</div><% } %>
   <% if (bookAdded) { %><div class="success-alert">The borrowed book was recorded successfully.</div><% } %>
+  <% if (studentCreated) { %><div class="success-alert">The student account was created successfully.</div><% } %>
+  <section class="student-account-panel" id="students">
+    <div class="section-heading"><div><span class="eyebrow">Class administration</span><h2>Create a student account</h2></div></div>
+    <div class="upload-box">
+      <p class="body-copy">Create accounts only for learners verified in your class. Give the student their assessment number and temporary password privately.</p>
+      <form method="post" action="/teacher/students">
+        <div class="form-field"><label for="studentName">Full name</label><input id="studentName" name="name" placeholder="Student full name" required></div>
+        <div class="form-field"><label for="studentAssessmentNumber">Assessment number</label><input id="studentAssessmentNumber" name="assessmentNumber" placeholder="A008372622 or B00073727" pattern="[ABab][0-9]{8,9}" title="Start with A or B, followed by 8 or 9 digits" required><small class="field-hint">Use A or B followed by 8 or 9 digits.</small></div>
+        <div class="filter-row"><div class="form-field"><label for="studentGrade">Grade</label><select id="studentGrade" name="classGrade" required><option value="">Choose grade</option><% Object.keys(classStreams).forEach(grade => { %><option value="<%= grade %>"><%= grade %></option><% }) %></select></div><div class="form-field"><label for="studentStream">Stream</label><select id="studentStream" name="stream" data-stream-select data-streams='<%- JSON.stringify(classStreams) %>' required><option value="">Choose stream</option></select></div></div>
+        <div class="form-field"><label for="studentPassword">Temporary password</label><div class="password-field"><input id="studentPassword" name="password" type="password" minlength="6" required><button class="password-toggle" type="button" data-password-toggle="studentPassword">Show</button></div></div>
+        <div class="form-field"><label for="studentConfirmPassword">Confirm password</label><div class="password-field"><input id="studentConfirmPassword" name="confirmPassword" type="password" minlength="6" required><button class="password-toggle" type="button" data-password-toggle="studentConfirmPassword">Show</button></div></div>
+        <button class="button" type="submit">Create student account</button>
+      </form>
+    </div>
+  </section>
   <div class="upload-box">
     <h2>Upload exam results</h2>
     <p class="body-copy">

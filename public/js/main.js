@@ -28,10 +28,12 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   });
 });
 
-const gradeSelect = document.querySelector("#classGrade");
-const streamSelect = document.querySelector("[data-stream-select]");
-if (gradeSelect && streamSelect) {
-  const streams = JSON.parse(streamSelect.dataset.streams);
+document.querySelectorAll("[data-stream-select]").forEach((streamSelect) => {
+  const gradeSelect = streamSelect
+    .closest("form")
+    ?.querySelector("select[name='classGrade']");
+  if (!gradeSelect) return;
+  const streams = JSON.parse(streamSelect.dataset.streams || "{}");
   const selectedStream = streamSelect.dataset.selected || "";
   const updateStreams = () => {
     streamSelect.innerHTML = '<option value="">Choose stream</option>';
@@ -45,7 +47,7 @@ if (gradeSelect && streamSelect) {
   };
   gradeSelect.addEventListener("change", updateStreams);
   updateStreams();
-}
+});
 
 document
   .querySelectorAll("[data-student-filter='grade']")

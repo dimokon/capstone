@@ -327,16 +327,7 @@ app.post("/student/login", async (req, res) => {
   });
 });
 
-app.get("/student/register", (req, res) =>
-  res.render("student-register", {
-    title: "Student registration",
-    error: null,
-    success: null,
-    formData: {},
-    classStreams,
-  }),
-);
-app.post("/student/register", async (req, res) => {
+app.post("/teacher/students", requireTeacher, async (req, res) => {
   const name = (req.body.name || "").trim();
   const assessmentNumber = (req.body.assessmentNumber || "")
     .trim()
@@ -347,14 +338,7 @@ app.post("/student/register", async (req, res) => {
   const confirmPassword = req.body.confirmPassword || "";
   const formData = { name, assessmentNumber, classGrade, stream };
 
-  const renderError = (error, status = 400) =>
-    res.status(status).render("student-register", {
-      title: "Student registration",
-      error,
-      success: null,
-      formData,
-      classStreams,
-    });
+  const renderError = (error, status = 400) => res.status(status).send(error);
 
   if (
     !name ||
@@ -389,19 +373,12 @@ app.post("/student/register", async (req, res) => {
       "INSERT INTO students (assessment_number, password, full_name, class_grade, stream) VALUES (?, ?, ?, ?, ?)",
       [assessmentNumber, passwordHash, name, classGrade, stream],
     );
-    return res.render("student-register", {
-      title: "Student registration",
-      error: null,
-      success: "Your account is ready. You can now sign in.",
-      formData: {},
-      classStreams,
-    });
+    return res.redirect("/teacher/dashboard?studentCreated=1#students");
   } catch (error) {
     console.error("Student registration failed:", error.message);
-    return renderError(
-      "We could not create your account right now. Please try again.",
-      500,
-    );
+    return res
+      .status(500)
+      .send("We could not create the student account right now.");
   }
 });
 app.get("/teacher/login", (req, res) =>
@@ -544,6 +521,7 @@ app.get("/teacher/dashboard", requireTeacher, async (req, res) => {
     classStreams,
     uploaded: req.query.uploaded === "1",
     bookAdded: req.query.bookAdded === "1",
+    studentCreated: req.query.studentCreated === "1",
   });
 });
 app.post(
